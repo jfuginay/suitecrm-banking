@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs", "yarn"]
+
+[phases.build]
+cmds = ["echo 'No build needed'"]
+
+[phases.install]
+cmds = ["echo 'No install needed'"]
+
+[start]
+cmd = "npx serve -l tcp://0.0.0.0:$PORT"
