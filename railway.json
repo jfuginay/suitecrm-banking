@@ -2,46 +2,11 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
+    "dockerfilePath": "Dockerfile.railway"
   },
   "deploy": {
     "numReplicas": 1,
-    "healthcheckPath": "/health",
+    "healthcheckPath": "/health.php",
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3,
-    "region": "us-west1"
-  },
-  "services": [
-    {
-      "name": "suitecrm",
-      "source": {
-        "repo": "https://github.com/yourusername/suitecrm-banking"
-      },
-      "build": {
-        "dockerfile": "Dockerfile.suitecrm"
-      },
-      "deploy": {
-        "startCommand": "apache2-foreground",
-        "healthcheckPath": "/",
-        "envVars": {
-          "DEMO_MODE": "true",
-          "AUTO_RESET": "hourly",
-          "SHOW_DEMO_BANNER": "true"
-        }
-      }
-    },
-    {
-      "name": "cobol-api",
-      "source": {
-        "repo": "https://github.com/yourusername/suitecrm-banking"
-      },
-      "build": {
-        "dockerfile": "Dockerfile.cobol"
-      },
-      "deploy": {
-        "startCommand": "npm start",
-        "healthcheckPath": "/health"
-      }
-    }
-  ]
-}
+    "restartPolicyMaxRetries": 3
+  }

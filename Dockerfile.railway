@@ -1,0 +1,76 @@
+# Railway-optimized Dockerfile for SuiteCRM Banking
+FROM php:7.4-apache
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    libicu-dev \
+    libxml2-dev \
+    libldap2-dev \
+    libgmp-dev \
+    mariadb-client \
+    curl \
+    git \
+    zip \
+    unzip \
+    gnucobol \
+    nodejs \
+    npm \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+        gd \
+        mysqli \
+        pdo_mysql \
+        zip \
+        intl \
+        soap \
+        bcmath \
+        gmp \
+        opcache \
+    && rm -rf /var/lib/apt/lists/*
+
+# Enable Apache modules
+RUN a2enmod rewrite headers expires
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy application files
+COPY . /var/www/html/
+
+# Set up SuiteCRM directories
+RUN mkdir -p cache custom modules upload \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html \
+    && chmod -R 775 cache custom modules upload
+
+# Copy demo configuration
+COPY demo-config.php config_override.php
+
+# Create a simple health check file
+RUN echo "<?php echo 'OK';" > health.php
+
+# Railway-specific environment setup
+ENV APACHE_RUN_USER=www-data \
+    APACHE_RUN_GROUP=www-data \
+    APACHE_LOG_DIR=/var/log/apache2 \
+    APACHE_PID_FILE=/var/run/apache2.pid \
+    APACHE_RUN_DIR=/var/run/apache2 \
+    APACHE_LOCK_DIR=/var/lock/apache2
+
+# Create required directories
+RUN mkdir -p $APACHE_RUN_DIR $APACHE_LOCK_DIR
+
+# Railway uses PORT environment variable
+RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf \
+    && sed -i 's/80/${PORT}/g' /etc/apache2/ports.conf
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
+    CMD curl -f http://localhost:${PORT}/health.php || exit 1
+
+# Start Apache in foreground
+CMD ["sh", "-c", "sed -i \"s/80/${PORT}/g\" /etc/apache2/sites-available/000-default.conf && sed -i \"s/80/${PORT}/g\" /etc/apache2/ports.conf && apache2-foreground"]

@@ -1,0 +1,46 @@
+FROM node:18-slim
+
+# Install GnuCOBOL and dependencies
+RUN apt-get update && apt-get install -y \
+    gnucobol \
+    libgmp-dev \
+    libdb-dev \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files
+COPY cobol-services/package*.json ./
+
+# Install Node dependencies
+RUN npm ci --only=production || npm install
+
+# Copy all COBOL service files
+COPY cobol-services/ ./
+
+# Make scripts executable
+RUN chmod +x *.sh || true
+
+# Create compiled directory
+RUN mkdir -p compiled
+
+# Compile COBOL programs with error handling
+RUN for cob in *.cob; do \
+        if [ -f "$cob" ]; then \
+            echo "Compiling $cob..." && \
+            cobc -x -o "compiled/${cob%.cob}" "$cob" 2>&1 || \
+            echo "Warning: Failed to compile $cob, will use mock mode"; \
+        fi \
+    done
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+EXPOSE 3000
+
+# Use node directly instead of bash script for Railway
+CMD ["node", "server.js"]
