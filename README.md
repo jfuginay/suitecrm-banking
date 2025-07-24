@@ -4,7 +4,7 @@
 
 ## 🎮 Try the Live Demo
 
-**[Live Demo](https://suitecrm-banking-demo.railway.app)** | Login: `admin` / `demo123`
+**[Live Demo](https://cobol-api-production.up.railway.app)** | **[API Health Check](https://cobol-api-production.up.railway.app/health)**
 
 Deploy your own instance in minutes:
 
