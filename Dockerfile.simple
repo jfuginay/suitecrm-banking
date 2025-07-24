@@ -1,0 +1,62 @@
+# Simple all-in-one Dockerfile for Railway
+FROM php:7.4-apache
+
+# Install basic dependencies only
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    unzip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd mysqli pdo_mysql zip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Enable Apache modules
+RUN a2enmod rewrite
+
+# Create a simple PHP application
+WORKDIR /var/www/html
+
+# Remove default index
+RUN rm -f index.html
+
+# Create a simple demo application
+RUN echo '<?php \
+echo "<!DOCTYPE html><html><head><title>SuiteCRM Banking Demo</title>"; \
+echo "<style>body{font-family:Arial;margin:40px;background:#f0f0f0;}"; \
+echo ".container{background:white;padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}"; \
+echo "h1{color:#2c3e50;}button{background:#3498db;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer;}"; \
+echo "button:hover{background:#2980b9;}.feature{margin:20px 0;padding:15px;background:#f8f9fa;border-radius:5px;}</style></head><body>"; \
+echo "<div class=\"container\">"; \
+echo "<h1>🏦 SuiteCRM Banking Edition</h1>"; \
+echo "<p>Welcome to the SuiteCRM Banking Edition demo. This version includes:</p>"; \
+echo "<div class=\"feature\"><strong>✅ COBOL Integration</strong> - Connect to mainframe systems</div>"; \
+echo "<div class=\"feature\"><strong>✅ Loan Processing</strong> - Complete loan workflows</div>"; \
+echo "<div class=\"feature\"><strong>✅ Account Management</strong> - Real-time account sync</div>"; \
+echo "<div class=\"feature\"><strong>✅ Transaction Monitoring</strong> - Live transaction feeds</div>"; \
+echo "<h2>Demo Accounts</h2>"; \
+echo "<ul><li>Bank Manager: admin / demo123</li><li>Loan Officer: loan / demo123</li></ul>"; \
+echo "<button onclick=\"alert(\"Full CRM coming soon! This is a preview.\")\">Launch Demo CRM</button>"; \
+echo "<p style=\"margin-top:30px;color:#666;\">Note: This is a simplified demo. The full CRM requires additional setup.</p>"; \
+echo "</div></body></html>"; \
+?>' > index.php
+
+# Create health check
+RUN echo '<?php echo "OK"; ?>' > health.php
+
+# Configure Apache for Railway
+RUN echo 'Listen ${PORT}' > /etc/apache2/ports.conf && \
+    echo '<VirtualHost *:${PORT}>' > /etc/apache2/sites-available/000-default.conf && \
+    echo '    DocumentRoot /var/www/html' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '    <Directory /var/www/html>' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '        AllowOverride All' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '        Require all granted' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '    </Directory>' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '</VirtualHost>' >> /etc/apache2/sites-available/000-default.conf
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html
+
+# Start Apache
+CMD ["sh", "-c", "apache2-foreground"]

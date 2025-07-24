@@ -1,0 +1,14 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Only copy what we need
+COPY simple-api.js .
+COPY cobol-services/package.json .
+
+# Install only express
+RUN npm install express
+
+EXPOSE 3000
+
+CMD ["node", "simple-api.js"]
