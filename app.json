@@ -1,0 +1,60 @@
+{
+  "name": "SuiteCRM Banking Edition",
+  "description": "Open-source CRM with native COBOL/FORTRAN integration for banks",
+  "keywords": ["crm", "banking", "cobol", "fortran", "mainframe", "fintech"],
+  "website": "https://github.com/yourusername/suitecrm-banking",
+  "repository": "https://github.com/yourusername/suitecrm-banking",
+  "logo": "https://raw.githubusercontent.com/yourusername/suitecrm-banking/main/logo.png",
+  "success_url": "/admin",
+  "stack": "container",
+  "env": {
+    "DEMO_MODE": {
+      "description": "Enable demo mode with auto-reset",
+      "value": "true",
+      "required": false
+    },
+    "AUTO_RESET": {
+      "description": "How often to reset demo data",
+      "value": "hourly",
+      "required": false
+    },
+    "ADMIN_PASSWORD": {
+      "description": "Admin password (default: admin)",
+      "generator": "secret",
+      "required": false
+    },
+    "ENABLE_COBOL": {
+      "description": "Enable COBOL integration",
+      "value": "true",
+      "required": false
+    },
+    "ENABLE_FORTRAN": {
+      "description": "Enable FORTRAN support",
+      "value": "true",
+      "required": false
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "free"
+    },
+    "worker": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:hobby-dev"
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/php"
+    }
+  ],
+  "scripts": {
+    "postdeploy": "php install/install.php && php repair.php"
+  }
+}

@@ -1,0 +1,46 @@
+services:
+  # SuiteCRM Web Application
+  - type: web
+    name: suitecrm-banking
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: DEMO_MODE
+        value: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: suitecrm-db
+          property: connectionString
+      - key: COBOL_API_URL
+        fromService:
+          name: cobol-api
+          type: web
+          property: host
+    domains:
+      - suitecrm-banking-demo.onrender.com
+    autoDeploy: true
+    
+  # COBOL API Service  
+  - type: web
+    name: cobol-api
+    env: docker
+    dockerfilePath: ./Dockerfile.cobol
+    dockerContext: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+    autoDeploy: true
+    
+  # Background Jobs (Demo Reset)
+  - type: cron
+    name: demo-reset
+    env: docker
+    schedule: "0 * * * *" # Every hour
+    command: ./scripts/reset-demo.sh
+    
+databases:
+  - name: suitecrm-db
+    databaseName: suitecrm_banking
+    user: suitecrm
+    plan: free # Upgrade to 'starter' for production
