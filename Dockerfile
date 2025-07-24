@@ -1,82 +1,24 @@
-# Multi-service Dockerfile for SuiteCRM Banking Demo
-FROM php:7.4-apache AS suitecrm
+# Simplest possible Dockerfile for Railway
+FROM php:7.4-apache
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    libicu-dev \
-    libxml2-dev \
-    libldap2-dev \
-    libgmp-dev \
-    libkrb5-dev \
-    libc-client-dev \
-    gnucobol \
-    mariadb-client \
-    curl \
-    git \
-    zip \
-    unzip \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-        gd \
-        mysqli \
-        pdo_mysql \
-        zip \
-        intl \
-        soap \
-        bcmath \
-        gmp \
-        opcache
+# Install minimal dependencies
+RUN docker-php-ext-install mysqli
 
-# Enable Apache modules
-RUN a2enmod rewrite headers expires
+# Create a simple index page
+RUN echo '<?php \
+echo "<h1>SuiteCRM Banking Edition</h1>"; \
+echo "<p>Demo deployment successful!</p>"; \
+echo "<p>Full CRM installation coming soon.</p>"; \
+?>' > /var/www/html/index.php
 
-# Copy SuiteCRM files
-COPY --from=builder /app/SuiteCRM /var/www/html/
-COPY --from=builder /app/custom /var/www/html/custom/
-COPY --from=builder /app/modules /var/www/html/modules/
+# Remove default index.html
+RUN rm -f /var/www/html/index.html
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html \
-    && chmod -R 775 /var/www/html/cache \
-    && chmod -R 775 /var/www/html/custom \
-    && chmod -R 775 /var/www/html/modules \
-    && chmod -R 775 /var/www/html/upload
+# Configure Apache to use PORT env variable
+RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf \
+    && sed -i 's/80/${PORT}/g' /etc/apache2/ports.conf
 
-# Copy demo configuration
-COPY demo-config.php /var/www/html/config_override.php
+EXPOSE ${PORT}
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
-    CMD curl -f http://localhost/ || exit 1
-
-EXPOSE 80
-
-# COBOL API Service
-FROM node:16-alpine AS cobol-api
-
-# Install GnuCOBOL
-RUN apk add --no-cache gnucobol gnucobol-dev build-base
-
-WORKDIR /app
-
-# Copy COBOL services
-COPY cobol-services/package*.json ./
-RUN npm ci --only=production
-
-COPY cobol-services/ ./
-
-# Compile COBOL programs
-RUN chmod +x compile-cobol.sh && ./compile-cobol.sh
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s \
-    CMD curl -f http://localhost:3000/health || exit 1
-
-EXPOSE 3000
-
-CMD ["npm", "start"]
+# Start Apache
+CMD ["bash", "-c", "sed -i \"s/80/${PORT}/g\" /etc/apache2/sites-available/000-default.conf && sed -i \"s/80/${PORT}/g\" /etc/apache2/ports.conf && apache2-foreground"]
